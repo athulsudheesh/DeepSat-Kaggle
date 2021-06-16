@@ -8,18 +8,18 @@ X_raw = CSV.File(joinpath("data","X_train_sat4.csv"),
 
 y_raw = CSV.File(joinpath("data","y_train_sat4.csv"), 
                 limit = 10000, threaded=false) |> DataFrame |> Matrix
-images = convert_gray(X_raw)
+images = convert_gray(X_raw) # convert_gray  function is defined in utils.jl
 
 # extract_nsvdvals takes the array of images, performs SVD and returns normalized singular values of each image 
-X_train = extract_nsvdvals(images)
-y_train = reverse_onehot(y_raw)
+X_train = extract_nsvdvals(images) #extract_nsvdvals function is defined in utils.jl
+y_train = reverse_onehot(y_raw) # reverse_onehot  function is defined in utils.jl
 
 @sk_import linear_model: LogisticRegression
+
+# Baseline Logisitic Regression Model
 logistic_baseline = LogisticRegression(max_iter=1000000, 
             verbose=1,class_weight=:balanced, solver=:sag,
             penalty="none")
-
 ScikitLearn.fit!(logistic_baseline,X_train,y_train)
-
-ScikitLearn.score(logistic_baseline,X_train,y_train)
+ScikitLearn.score(logistic_baseline,X_train,y_train) # training set accuracy = 0.8053   
             
