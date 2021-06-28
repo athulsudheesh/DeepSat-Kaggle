@@ -34,7 +34,8 @@ X_test = extract_nsvdvals(images_test)
 y_train = reverse_onehot(y_raw) # reverse_onehot  function is defined in utils.jl
 y_test = reverse_onehot(y_raw_test)
 
-
+X_features = Matrix(extract_color_info(X_raw))
+X_features_test = Matrix(extract_color_info(X_raw_test))
 
 # Baseline Logisitic Regression Model
 @sk_import linear_model:LogisticRegression
@@ -45,9 +46,9 @@ logistic_baseline = LogisticRegression(
     solver = :sag,
     penalty = "none",
 )
-ScikitLearn.fit!(logistic_baseline, X_train, y_train)
-ScikitLearn.score(logistic_baseline, X_train, y_train) # training set accuracy = 0.7841  
-ScikitLearn.score(logistic_baseline, X_test, y_test)
+ScikitLearn.fit!(logistic_baseline, [X_train X_features], y_train)
+ScikitLearn.score(logistic_baseline, [X_train X_features], y_train) # training set accuracy = 0.7841  
+ScikitLearn.score(logistic_baseline, [X_test X_features_test X_dct], y_test)
 cross_val_score(logistic_baseline, X_train, y_train)
 # Accuracy with IR image: 0.704
 
@@ -55,8 +56,8 @@ cross_val_score(logistic_baseline, X_train, y_train)
 
 @sk_import tree:DecisionTreeClassifier
 tree = DecisionTreeClassifier(class_weight = :balanced)
-ScikitLearn.fit!(tree, X_train, y_train)
-ScikitLearn.score(tree, X_test, y_test)
+ScikitLearn.fit!(tree, [X_train X_features kmeans.labels_], y_train)
+ScikitLearn.score(tree, [X_train X_features kmeans.labels_], y_train)
 
 
 
@@ -73,3 +74,5 @@ clf = BaggingClassifier(
 ScikitLearn.fit!(clf, X_train, y_train)
 ScikitLearn.score(clf, X_train, y_train) # 84.24 accuracy 
 ScikitLearn.score(clf, X_test, y_test) # 27.58 accuracy
+
+ndvi = NDVI(X_raw)

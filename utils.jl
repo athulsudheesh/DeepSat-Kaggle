@@ -20,7 +20,7 @@ function convert_gray(data)
     img_array = temp = Array{Array{Float64,2},1}(undef, m)
     # reshaping and converting to grayscale 
     for i = 1:m
-        temp = colorview(RGB, reshape(X_raw[i, :], 4, 28, 28)[1:3, :, :] ./ 255)
+        temp = colorview(RGB, reshape(data[i, :], 4, 28, 28)[1:3, :, :] ./ 255)
         temp_gray = Float64.(Gray.(temp))
         img_array[i] = temp_gray
     end
@@ -40,10 +40,10 @@ end
 
 
 function extract_nsvdvals(images)
-    recodedImg = Array{Float64}(undef, 0, 28)
+    recodedImg = Array{Float64}(undef, 0, 10)
     dims = size(images)
     for i = 1:dims[1]
-        img_singular = @pipe images[i] |> svdvals(_)'
+        img_singular = @pipe images[i] |> svdvals(_)[1:10]'
         recodedImg = vcat(recodedImg, img_singular)
     end
     recodedImg = mapslices(normalize, recodedImg, dims = 1)
@@ -75,4 +75,47 @@ function reverse_onehot_test(y_raw)
         norm_vals[4] => "trees",
     )
     return y_train
+end
+
+
+function hist_extract(images)
+    m = length(images)
+    counts = Array{Int64}(undef, 0, 17)
+    for i = 1:m
+        _ , temp = build_histogram(Gray.(images[i]), 16)
+        counts = vcat(counts, temp')
+    end
+    return counts[:,Not(1)]
+end
+
+
+function extract_color_info(data)
+    m, n = size(data)
+    features = DataFrame(
+        Rₘ = Float32[], Bₘ = Float32[], Gₘ = Float32[],
+
+    )
+    # reshaping and converting to grayscale 
+    for i = 1:m
+        temp = colorview(RGB, reshape(data[i, :], 4, 28, 28)[1:3, :, :] ./ 255)
+        temp_r_mean    = mean(red.(temp))
+        temp_b_mean    = mean(blue.(temp))
+        temp_g_mean    = mean(green.(temp))
+
+        push!(features, [temp_r_mean, temp_b_mean, temp_g_mean])
+    end
+    return features
+end
+
+
+function NDVI(data)
+    m, n = size(data)
+    mean_ndvi = Array{Float64}(undef,m)
+    # reshaping and converting to grayscale 
+    for i = 1:m
+        temp_red = red.(colorview(RGB, reshape(data[1, :], 4, 28, 28)[1:3, :, :] ./ 255))
+        temp_IR = reshape(data[1, :], 4, 28, 28)[4, :, :]
+        mean_ndvi[i] = mean((temp_IR - temp_red) / (temp_IR + temp_red))
+    end
+    return mean_ndvi
 end
