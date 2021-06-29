@@ -1,4 +1,37 @@
+"""
+Loads the data as dataframe. 
 
+Takes in the path to data and the number of observationsto
+ load from the file. Returns X_raw, y_raw, X_raw_test, y_raw_test.
+"""
+function load_raw_data(path,n)
+
+    X_raw =
+        CSV.File(joinpath(path, "X_train_sat4.csv"), limit = n, threaded = false) |>
+        DataFrame |>
+        Matrix
+
+    X_raw_test =
+        CSV.File(joinpath(path, "X_test_sat4.csv"), limit = n, threaded = false) |>
+        DataFrame |>
+        Matrix
+
+    y_raw =
+        CSV.File(joinpath(path, "y_train_sat4.csv"), limit = n, threaded = false) |>
+        DataFrame |>
+        Matrix
+
+    y_raw_test =
+        CSV.File(joinpath(path, "y_test_sat4.csv"), limit = n, threaded = false) |>
+        DataFrame |>
+        Matrix
+    
+    return X_raw, y_raw, X_raw_test, y_raw_test
+end 
+
+"""
+Generates the elbow plot with the passed vector of Sigular Values 
+"""
 function screeplot(S)
     hold(false)
     colorscheme("light")
@@ -14,7 +47,13 @@ function screeplot(S)
     aspectratio(24 / 16)
     display(scatter(1:length(S), S, grid = false))
 end
+###############################################
+# Data Pre-processing & Feature Engineering   #
+###############################################
 
+"""
+Extracts the gray scale image from the CSV File 
+"""
 function convert_gray(data)
     m, n = size(data)
     img_array = temp = Array{Array{Float64,2},1}(undef, m)
@@ -27,6 +66,9 @@ function convert_gray(data)
     return img_array
 end
 
+"""
+Extracts the near-infrared images from the CSV File 
+"""
 function convert_IR(data)
     m, n = size(data)
     img_array = temp = Array{Array{Float64,2},1}(undef, m)
@@ -64,19 +106,6 @@ function reverse_onehot(y_raw)
     )
 end
 
-function reverse_onehot_test(y_raw)
-    norm_vals = unique(mapslices(sum, mapslices(normalize, y_raw, dims = 1), dims = 2))
-
-    y_train = replace(
-        mapslices(sum, mapslices(normalize, y_raw, dims = 1), dims = 2),
-        norm_vals[1] => "barren_land",
-        norm_vals[2] => "none",
-        norm_vals[3] => "grass_land",
-        norm_vals[4] => "trees",
-    )
-    return y_train
-end
-
 
 function hist_extract(images)
     m = length(images)
@@ -88,7 +117,9 @@ function hist_extract(images)
     return counts[:,Not(1)]
 end
 
-
+"""
+Extracts the mean values of Red, Blue and Green Channel
+"""
 function extract_color_info(data)
     m, n = size(data)
     features = DataFrame(
@@ -107,7 +138,9 @@ function extract_color_info(data)
     return features
 end
 
-
+"""
+Calculates the Normalized Vegetation Index of a pixel. 
+"""
 function NDVI(data)
     m, n = size(data)
     mean_ndvi = Array{Float64}(undef,m)
